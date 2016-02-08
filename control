@@ -1,0 +1,9 @@
+Package: com.dbdexter.cirrus
+Name: Cirrus
+Depends: mobilesubstrate
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: Weather on your LockScreen!
+Maintainer: DBDexter
+Author: DBDexter
+Section: Tweaks

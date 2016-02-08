@@ -1,0 +1,10 @@
+{
+    entry = {
+	bundle = cirrusPreferences;
+	cell = PSLinkCell;
+	detail = cirrusPreferencesListController;
+	icon = CirrusPreferences.png;
+	isController = 1;
+	label = Cirrus;
+    };
+}
