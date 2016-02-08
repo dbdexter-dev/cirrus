@@ -37,6 +37,7 @@ static double updateInterval;
 static float latitude;
 static float longitude;
 static BOOL isFarenheit;
+BOOL isUpdating;
 
 static NSMutableDictionary* _weatherInfo = nil;
 static double lastTimeChecked;
@@ -182,6 +183,7 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
  */
 -(void)_updateWeatherInfo {
 	if(([[NSDate date]timeIntervalSince1970]-(updateInterval * 3600) >= lastTimeChecked)) {		//Make sure we updated long enough ago
+		isUpdating = true;
 		lastTimeChecked = [[NSDate date] timeIntervalSince1970];				//Update last check timestamp
 		
 		if(shouldAutolocate) {									//Find our current location and get the forecast for that lat/lon
@@ -217,8 +219,10 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 		__sunConnection = [[NSURLConnection alloc] initWithRequest:sunQuery delegate:self];
 		[formatter release];
 
+	} else if (isUpdating) {
+		[NSTimer scheduledTimerWithTimeInterval:1.5 target:self selector:@selector(_updateDisplayedWeather) userInfo:nil repeats:NO];	//Let the update finish before dhowing the data 
 	} else {
-			[self _updateDisplayedWeather];							//Update the weather info displayed
+		[self _updateDisplayedWeather];		//Data already present and ready, update immediately
 	}
 }
 
@@ -240,21 +244,29 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 	[iconView setImage:[UIImage imageNamed:iconPath]];
 	iconView.image = [iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 	[iconView setTintColor:(tempLabel.usesSecondaryColor ? self.legibilitySettings.secondaryColor:self.legibilitySettings.primaryColor)];
+	
+	int temp = lroundf([[_weatherInfo objectForKey:@"temp"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0));
+	int temp_min = lroundf([[_weatherInfo objectForKey:@"temp_min"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0));
+	int temp_max = lroundf([[_weatherInfo objectForKey:@"temp_max"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0));
+	int temp_one = lroundf([[_weatherInfo objectForKey:@"temp_one"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0));
+	int temp_two = lroundf([[_weatherInfo objectForKey:@"temp_two"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0));
+	int temp_three = lroundf([[_weatherInfo objectForKey:@"temp_three"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0));
 
-	tempLabel.string = [NSString stringWithFormat:@"%@", [_weatherInfo objectForKey:@"temp"]];							//Set current temperature
-	maxMinLabel.text = [NSString stringWithFormat:@"%@°\t%@°", [_weatherInfo objectForKey:@"temp_min"], [_weatherInfo objectForKey:@"temp_max"]];	//Set 6h max/min temps
+	tempLabel.string = [NSString stringWithFormat:@"%d", temp];							//Set current temperature
+	maxMinLabel.text = [NSString stringWithFormat:@"%d°\t%d°", temp_min, temp_max];	//Set 6h max/min temps
 	
 	NSDate* forecastHour = [[NSDate dateWithTimeIntervalSince1970:lastTimeChecked] dateByAddingTimeInterval:3*3600];
 	NSDateFormatter* dateFormatter = [[NSDateFormatter alloc]init];
 	dateFormatter.dateFormat = @"ha";
 	
-	forecastOne.string = [NSString stringWithFormat:@"%@: %@°", [dateFormatter stringFromDate:forecastHour], [_weatherInfo objectForKey:@"temp_one"]];	//Set +3h temp
+	forecastOne.string = [NSString stringWithFormat:@"%@: %d°", [dateFormatter stringFromDate:forecastHour], temp_one];	//Set +3h temp
 	forecastHour = [forecastHour dateByAddingTimeInterval:3*3600];
-	forecastTwo.string = [NSString stringWithFormat:@"%@: %@°", [dateFormatter stringFromDate:forecastHour], [_weatherInfo objectForKey:@"temp_two"]];	//Set +6h temp
+	forecastTwo.string = [NSString stringWithFormat:@"%@: %d°", [dateFormatter stringFromDate:forecastHour], temp_two];	//Set +6h temp
 	forecastHour = [forecastHour dateByAddingTimeInterval:3*3600];
-	forecastThree.string = [NSString stringWithFormat:@"%@: %@°", [dateFormatter stringFromDate:forecastHour], [_weatherInfo objectForKey:@"temp_three"]];	//Set +9h temp
+	forecastThree.string = [NSString stringWithFormat:@"%@: %d°", [dateFormatter stringFromDate:forecastHour], temp_three];	//Set +9h temp
 	
 	[dateFormatter release];
+	[self layoutSubviews];
 }
 
 %new
@@ -294,18 +306,24 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 															//model (if available)  and a global model. For locations outside
 															//Europe only the global model seemsn to be available
 		
-		//The prasing code below is extremely ugly but its principle is quite simple: get the data from the xml response and place it in a more compact NSDictionary,
+		//The parsing code below is extremely ugly but its principle is quite simple: get the data from the xml response and place it in a more compact NSDictionary,
 		//converting the units of measurement as needed
+		NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+		formatter.dateFormat = @"H";
+		int global_index = ((([[formatter stringFromDate:[NSDate date]]intValue] / 3 + 1) % 2) ? 5 : 8);	//Weird conversion to get the correct index for temp_max and temp_min
+															//Because we have 3h forecasts, but only 6h max/min temps
+		[formatter release];
 
 		[_weatherInfo setObject: [[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 6 : 4)] valueForKeyPath:@"location.symbol.number"]  forKey:@"id"];
-		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:0] valueForKeyPath:@"location.temperature.value"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0))) forKey:@"temp"];
-		[_weatherInfo setObject: @([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 34 : 8)] valueForKeyPath:@"location.maxTemperature.value"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0)) forKey:@"temp_max"];
-		[_weatherInfo setObject: @([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 34 : 8)] valueForKeyPath:@"location.minTemperature.value"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0)) forKey:@"temp_min"];
-		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 15 : 3)] valueForKeyPath:@"location.temperature.value"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0))) forKey:@"temp_one"];
-		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 30 : 6)] valueForKeyPath:@"location.temperature.value"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0))) forKey:@"temp_two"];
-		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 45 : 9)] valueForKeyPath:@"location.temperature.value"]doubleValue] * (isFarenheit ? 1.8 : 1) + (isFarenheit ? 32 : 0))) forKey:@"temp_three"];
+		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:0] valueForKeyPath:@"location.temperature.value"]doubleValue])) forKey:@"temp"];
+		[_weatherInfo setObject: @([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 34 : global_index)] valueForKeyPath:@"location.maxTemperature.value"]doubleValue]) forKey:@"temp_max"];
+		[_weatherInfo setObject: @([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 34 : global_index)] valueForKeyPath:@"location.minTemperature.value"]doubleValue]) forKey:@"temp_min"];
+		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 15 : 3)] valueForKeyPath:@"location.temperature.value"]doubleValue])) forKey:@"temp_one"];
+		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 30 : 6)] valueForKeyPath:@"location.temperature.value"]doubleValue])) forKey:@"temp_two"];
+		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 45 : 9)] valueForKeyPath:@"location.temperature.value"]doubleValue])) forKey:@"temp_three"];
 		
 		[__forecastConnection release];
+		isUpdating = false;
 	} else if (connection == __sunConnection) {
 		if(__sunData == nil) {
 			lastTimeChecked = 0;
@@ -317,7 +335,7 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 		
 		[_weatherInfo setObject: @((double)[[formatter dateFromString:[sunXml valueForKeyPath:@"astrodata.time.location.sun.rise"]] timeIntervalSince1970]) forKey:@"sunrise"];
 		[_weatherInfo setObject: @((double)[[formatter dateFromString:[sunXml valueForKeyPath:@"astrodata.time.location.sun.set"]] timeIntervalSince1970]) forKey:@"sunset"];
-		
+
 		[__sunConnection release];
 		[formatter release];
 	}
@@ -328,6 +346,7 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 -(void)connection:(NSURLConnection*)connection didFailWithError:(NSError*)error{
 	lastTimeChecked = 0;
 	NSLog(@"<ERROR> [Cirrus] connection %@ failed", connection);
+	isUpdating = false;
 }
 
 %end

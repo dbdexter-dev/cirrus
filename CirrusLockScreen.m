@@ -82,7 +82,6 @@
 	
 	[self _updateLabels];
 	[self _updateWeatherInfo];
-	[self layoutSubviews];
 
 	[_degree release];
 	[_iconView release];
@@ -181,15 +180,15 @@
 				     _tempLabel.frame.origin.y,
 				     _iconView.frame.size.width,
 				     _iconView.frame.size.height);
-								 
+
 	_forecastOne.center = CGPointMake(_iconView.frame.origin.x + _iconView.frame.size.width/2,
 					  self.frame.size.height-_forecastThree.frame.size.height*5/2);
 	_forecastTwo.center = CGPointMake(_iconView.frame.origin.x + _iconView.frame.size.width/2,
 					  self.frame.size.height-_forecastThree.frame.size.height*3/2);
 	_forecastThree.center = CGPointMake(_iconView.frame.origin.x + _iconView.frame.size.width/2,
-					    self.frame.size.height-_forecastThree.frame.size.height*1/2);
+			    		    self.frame.size.height-_forecastThree.frame.size.height*1/2);
 }
--(void)_useLegibilityLabels:(BOOL)arg1 {		//TODO: this method seems not to get called, figure out why
+-(void)_useLegibilityLabels:(BOOL)arg1 {
 	_useLegibilityLabels = arg1;
 }
 -(void)updateFormat{}
