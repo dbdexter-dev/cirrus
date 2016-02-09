@@ -214,7 +214,8 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 
 	} else {
 		[self _updateDisplayedWeather];
-		__updateTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(_updateDisplayedWeather) userInfo:nil repeats:YES];
+		if(!__updateTimer)
+			__updateTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(_updateDisplayedWeather) userInfo:nil repeats:YES];
 	}
 }
 
