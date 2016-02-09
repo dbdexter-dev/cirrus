@@ -7,16 +7,11 @@
 #define INTERVAL 3600	//Time between subsequent weather updates
 #define APP_ID "com.dbdexter.cirruspreferences"
 
+#define __updateTimer MSHookIvar<NSTimer*>(self, "_updateTimer")
 #define __forecastConnection MSHookIvar<NSURLConnection*>(self, "_forecastConnection")
 #define __forecastData MSHookIvar<NSMutableData*>(self, "_forecastData")
 #define __sunConnection MSHookIvar<NSURLConnection*>(self, "_sunConnection")
 #define __sunData MSHookIvar<NSMutableData*>(self, "_sunData")
-
-@interface SBLockScreenViewController : UIViewController
-//@property (nonatomic,retain,readonly) UIScrollView *scrollView;
--(UIView*)lockScreenScrollView;
-//-(id)_getWeatherForCity:(NSString*)city;
-@end
 
 @interface SBLockScreenView : UIView
 @property (nonatomic,retain) CirrusLSForecastView *dateView;
@@ -37,7 +32,6 @@ static double updateInterval;
 static float latitude;
 static float longitude;
 static BOOL isFarenheit;
-BOOL isUpdating;
 
 static NSMutableDictionary* _weatherInfo = nil;
 static double lastTimeChecked;
@@ -183,7 +177,6 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
  */
 -(void)_updateWeatherInfo {
 	if(([[NSDate date]timeIntervalSince1970]-(updateInterval * 3600) >= lastTimeChecked)) {		//Make sure we updated long enough ago
-		isUpdating = true;
 		lastTimeChecked = [[NSDate date] timeIntervalSince1970];				//Update last check timestamp
 		
 		if(shouldAutolocate) {									//Find our current location and get the forecast for that lat/lon
@@ -219,13 +212,17 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 		__sunConnection = [[NSURLConnection alloc] initWithRequest:sunQuery delegate:self];
 		[formatter release];
 
-	} else if (isUpdating) {
-		[NSTimer scheduledTimerWithTimeInterval:1.5 target:self selector:@selector(_updateDisplayedWeather) userInfo:nil repeats:NO];	//Let the update finish before dhowing the data 
 	} else {
-		[self _updateDisplayedWeather];		//Data already present and ready, update immediately
+		[self _updateDisplayedWeather];
+		__updateTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(_updateDisplayedWeather) userInfo:nil repeats:YES];
 	}
 }
 
+-(void) dealloc {
+	[__updateTimer invalidate];
+	__updateTimer = nil;
+	%orig();
+}
 /**
  * A method that syncs the displayed weather with the global NSDictionary _weatherInfo
  */
@@ -239,7 +236,8 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 	_UILegibilityLabel* forecastThree = MSHookIvar<_UILegibilityLabel*>(self, "_forecastThree");
 	
 	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
-	NSString *iconPath = [bundle pathForResource:idToFname([[_weatherInfo objectForKey:@"id"] intValue], ISNIGHT) ofType:@"png"];	//Load image named based on the current weather info
+	NSString *imageName = idToFname([[_weatherInfo objectForKey:@"id"] intValue], ISNIGHT);
+	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
 	
 	[iconView setImage:[UIImage imageNamed:iconPath]];
 	iconView.image = [iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
@@ -323,7 +321,6 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 		[_weatherInfo setObject: @((int)lroundf([[[[xml valueForKeyPath:@"weatherdata.product.time"]objectAtIndex:(isLocal ? 45 : 9)] valueForKeyPath:@"location.temperature.value"]doubleValue])) forKey:@"temp_three"];
 		
 		[__forecastConnection release];
-		isUpdating = false;
 	} else if (connection == __sunConnection) {
 		if(__sunData == nil) {
 			lastTimeChecked = 0;
@@ -346,7 +343,6 @@ static NSString* idToFname(int weatherID, BOOL isNight) {
 -(void)connection:(NSURLConnection*)connection didFailWithError:(NSError*)error{
 	lastTimeChecked = 0;
 	NSLog(@"<ERROR> [Cirrus] connection %@ failed", connection);
-	isUpdating = false;
 }
 
 %end

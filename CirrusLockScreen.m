@@ -68,7 +68,6 @@
 	_maxMinLabel.text = @"0°\t0°";
 
 	_useLegibilityLabels = YES;
-	_defaultColor = _legibilitySettings.primaryColor;
 	
 	[self addSubview:_iconView];
 	[self addSubview:_timeLabel];
@@ -82,6 +81,7 @@
 	
 	[self _updateLabels];
 	[self _updateWeatherInfo];
+	[self _updateDisplayedWeather];
 
 	[_degree release];
 	[_iconView release];
@@ -99,7 +99,7 @@
 }
 
 -(void)dealloc{
-	NSLog(@"[Cirrus]: LSForecastView: deallocating");
+	NSLog(@"[Cirrus] LSForecastView: deallocating");
 	[_dateFormatter release];
 	[super dealloc];
 }

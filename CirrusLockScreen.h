@@ -29,7 +29,8 @@
 	UIColor* _textColor;
 	UIColor* _defaultColor;
 	double _dateAlphaPercentage;
-	
+	NSTimer* _updateTimer;
+
 	NSMutableData* _forecastData;
 	NSMutableData* _sunData;
 	NSURLConnection* _forecastConnection;
