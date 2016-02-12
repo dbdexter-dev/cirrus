@@ -129,6 +129,7 @@
 	[_degree updateForChangedSettings:arg1];
 	
 	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? arg1.secondaryColor:arg1.primaryColor)];
+	[self _updateDisplayedWeather];
 }
 -(_UILegibilitySettings *)legibilitySettings{
 	return _legibilitySettings;
