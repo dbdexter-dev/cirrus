@@ -26,32 +26,10 @@
 
 @implementation cirrusPreferencesListController
 - (id)specifiers {
-	NSMutableArray* specifiers = [[self loadSpecifiersFromPlistName:@"cirrusPreferences" target:self] mutableCopy];
-		
-	_latitudelongitudeSpecifiers = [[NSMutableArray alloc]init];
-	for(int i=[specifiers indexOfObject:[specifiers specifierForID:@"LOCATION_GROUP"]]+2; i < specifiers.count; i++) {
-		PSSpecifier *currentSpec = specifiers[i];
-		if ([[PSTableCell stringFromCellType:currentSpec.cellType]isEqualToString:@"PSGroupCell"])
-			break;
-		[_latitudelongitudeSpecifiers addObject:currentSpec];
+	if(!_specifiers) {
+		 _specifiers = [self loadSpecifiersFromPlistName:@"cirrusPreferences" target:self];
 	}
-	
-	if (CFPreferencesGetAppBooleanValue(CFSTR("shouldAutolocate"), CFSTR(APP_ID), NULL) == YES) {	//If auto-location is enabled
-		NSLog(@"[Cirrus] will remove lat/lon text cells");
-		[specifiers removeObjectsInArray:_latitudelongitudeSpecifiers];							//Hide the manual lat/lon specifiers
-	}
-	_specifiers = specifiers.copy;
-	[specifiers release];
 	return _specifiers;
-}
-
-- (void)setAutoLocationEnabled:(NSNumber*)value forSpecifier:(PSSpecifier*)specifier{
-	[self setPreferenceValue:value specifier:specifier];
-	
-	if(!value.boolValue)
-		[self insertContiguousSpecifiers:_latitudelongitudeSpecifiers atIndex:[_specifiers indexOfObject:[_specifiers specifierForID:@"LOCATION_GROUP"]]+2 animated:YES];
-	else
-		[self removeContiguousSpecifiers:_latitudelongitudeSpecifiers animated:YES];
 }
 
 - (void)launchDonate {

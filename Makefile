@@ -2,8 +2,8 @@ ARCHS = armv7 armv7s arm64
 include theos/makefiles/common.mk
 
 TWEAK_NAME = Cirrus
-Cirrus_FILES = Tweak.xm CirrusLockScreen.m XMLReader.m
-Cirrus_FRAMEWORKS = UIKit CoreGraphics CoreLocation
+Cirrus_FILES = Tweak.xm CirrusLockScreen.xm 
+Cirrus_FRAMEWORKS = UIKit CoreGraphics
 Cirrus_INSTALL_PATH = /Library/MobileSubstrate/DynamicLibraries/
 
 include $(THEOS_MAKE_PATH)/tweak.mk

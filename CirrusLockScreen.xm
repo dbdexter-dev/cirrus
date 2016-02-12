@@ -1,6 +1,131 @@
 #import "CirrusLockScreen.h"
+#import <Weather/HourlyForecast.h>
+
 #define LSFONT @".SFUIDisplay-Ultralight"
 #define BUNDLE @"/Library/Application Support/Cirrus"
+#define ISNIGHT NO
+
+@interface City : NSObject
+-(NSMutableArray*)hourlyForecasts;
+-(unsigned long long)conditionCode;
+-(NSString *)temperature;
+@end
+
+@interface WeatherPreferences : NSObject
++(id)sharedPreferences;
+-(City*)localWeatherCity;
+@end
+
+/**
+ + An extremely time-consuming function that converts weather IDs into filenames
+ * It also takes care of returning a filename based on current lighting conditions
+ */
+
+static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
+	switch(weatherID) {
+		case 0:
+		case 1:
+		case 2:
+		case 19:
+			return @"Tornado";
+			break;
+		
+		case 3:
+		case 4:
+		case 45:
+			return @"Cloud-Lightning";
+			break;
+
+		case 5:
+		case 6:
+		case 7:
+		case 13:
+		case 14:
+		case 15:
+		case 16:
+		case 18:
+		case 41:
+		case 43:
+		case 46:
+			return @"Cloud-Snow";
+			break;
+		
+		case 42:
+			return isNight ? @"Cloud-Snow-Moon" : @"Cloud-Snow-Sun";
+			break;
+
+		case 8:
+		case 9:
+			return @"Cloud-Drizzle";
+			break;
+
+		case 10:
+		case 17:
+		case 35:
+			return @"Cloud-Hail";
+			break;
+
+		case 11:
+		case 12:
+			return @"Cloud-Rain";
+			break;
+
+		case 20:
+		case 21:
+		case 22:
+		case 23:
+			return @"Cloud-Fog";
+			break;
+
+		case 24:	
+			return @"Wind";
+			break;
+
+		case 26:
+			return @"Cloud";
+			break;
+
+		case 27:
+		case 29:
+		case 33:
+			return @"Cloud-Moon";
+			break;
+
+		case 28:
+		case 30:
+		case 34:
+			return @"Cloud-Sun";
+			break;
+
+		case 31:
+			return @"Moon";
+			break;
+
+		case 32:
+			return @"Sun";
+			break;
+
+		case 37:
+		case 38:
+		case 39:
+		case 47:
+			return isNight ? @"Cloud-Lightning-Moon" : @"Cloud-Lightning-Sun";
+			break;
+
+		case 40:
+			return isNight ? @"Cloud-Rain-Moon" : @"Cloud-Rain-Sun";
+			break;
+
+
+		case 44:
+			return isNight ? @"Cloud-Moon" : @"Cloud-Sun";
+			break;
+
+		default:
+			return @"Cloud-Refresh";
+			break;
+	}
+}
 
 @implementation CirrusLSForecastView : UIView
 
@@ -80,7 +205,6 @@
 	[_iconView addSubview:_degree];
 	
 	[self _updateLabels];
-	[self _updateWeatherInfo];
 	[self _updateDisplayedWeather];
 
 	[_degree release];
@@ -268,6 +392,20 @@
 	return _dateStrength;
 }
 
--(void)_updateDisplayedWeather {}		//See Tweak.xm for an actual implementation
--(void)_updateWeatherInfo {}			//See Tweak.xm for an actual implementation
+-(void)_updateDisplayedWeather{
+	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
+	NSString *imageName = idToFname([[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] conditionCode], ISNIGHT);
+	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
+	[_iconView setImage:[UIImage imageNamed:iconPath]];
+	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? _legibilitySettings.secondaryColor:_legibilitySettings.primaryColor)];
+	
+	_tempLabel.string = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
+	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
+
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[0]).time, ((HourlyForecast*)hourlyForecasts[0]).detail];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[1]).time, ((HourlyForecast*)hourlyForecasts[1]).detail];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[2]).time, ((HourlyForecast*)hourlyForecasts[2]).detail];
+	[self layoutSubviews];
+}
 @end

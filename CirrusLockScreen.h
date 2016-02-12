@@ -29,13 +29,6 @@
 	UIColor* _textColor;
 	UIColor* _defaultColor;
 	double _dateAlphaPercentage;
-	NSTimer* _updateTimer;
-
-	NSMutableData* _forecastData;
-	NSMutableData* _sunData;
-	NSURLConnection* _forecastConnection;
-	NSURLConnection* _sunConnection;
-	
 }
 @property (assign,getter=isDateHidden,nonatomic) BOOL dateHidden; 
 @property (nonatomic,retain) NSDate * date;                                           
@@ -80,5 +73,4 @@
 -(double)timeStrength;
 -(double)dateStrength;
 -(void)_updateDisplayedWeather;
--(void)_updateWeatherInfo;
 @end
