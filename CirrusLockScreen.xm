@@ -430,10 +430,23 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
 	
+	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
+	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];
+	
+	[viewDateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"ha"
+									 options:nil
+									  locale:[NSLocale currentLocale]]];
+	forecastDateFormatter.dateFormat=@"HH:mm";
+	NSString *forecastOneTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[0]).time]];
+	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
+	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
 
-	_forecastOne.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[0]).time, ((HourlyForecast*)hourlyForecasts[0]).detail];
-	_forecastTwo.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[1]).time, ((HourlyForecast*)hourlyForecasts[1]).detail];
-	_forecastThree.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[2]).time, ((HourlyForecast*)hourlyForecasts[2]).detail];
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %@°", forecastOneTime, ((HourlyForecast*)hourlyForecasts[0]).detail];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %@°", forecastTwoTime, ((HourlyForecast*)hourlyForecasts[1]).detail];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %@°", forecastThreeTime, ((HourlyForecast*)hourlyForecasts[2]).detail];
+
+	[viewDateFormatter release];
+	[forecastDateFormatter release];
 	[self layoutSubviews];
 }
 
