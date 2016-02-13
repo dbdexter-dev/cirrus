@@ -413,6 +413,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 
 -(void)_updateDisplayedWeather {
+	[self _forceWeatherUpdate];
 	BOOL isNight = ![[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] isDay];
 
 	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
