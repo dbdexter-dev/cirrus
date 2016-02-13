@@ -1,23 +1,43 @@
 #import "CirrusLockScreen.h"
 #import <Weather/HourlyForecast.h>
+#import <Weather/DayForecast.h>
+#import <coreLocation/CoreLocation.h>
 
 #define LSFONT @".SFUIDisplay-Ultralight"
 #define BUNDLE @"/Library/Application Support/Cirrus"
-#define ISNIGHT NO
 
 @interface City : NSObject
 -(NSMutableArray*)hourlyForecasts;
+-(NSMutableArray*)dayForecasts;
 -(unsigned long long)conditionCode;
 -(NSString *)temperature;
+-(unsigned long long)sunriseTime;
+-(unsigned long long)sunsetTime;
+-(BOOL)isDay;
 @end
 
 @interface WeatherPreferences : NSObject
 +(id)sharedPreferences;
 -(City*)localWeatherCity;
+-(void)setLocalWeatherEnabled:(BOOL)arg1;
+@end
+
+@interface WeatherLocationManager : NSObject
++(id)sharedWeatherLocationManager;
+-(BOOL)locationTrackingIsReady;
+-(void)setLocationTrackingReady:(BOOL)arg1 activelyTracking:(BOOL)arg2 watchKitExtension:(id)arg3;
+-(void)setLocationTrackingActive:(BOOL)arg1;
+-(CLLocation*)location;
+-(void)setDelegate:(id)arg1;
+@end
+
+@interface TWCLocationUpdater : NSObject
++(id)sharedLocationUpdater;
+-(void)updateWeatherForLocation:(CLLocation*)arg1 city:(City*)arg2;
 @end
 
 /**
- + An extremely time-consuming function that converts weather IDs into filenames
+ * An extremely time-consuming function that converts weather IDs into filenames
  * It also takes care of returning a filename based on current lighting conditions
  */
 
@@ -194,6 +214,8 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 	_useLegibilityLabels = YES;
 	
+	[self _forceWeatherUpdate];
+
 	[self addSubview:_iconView];
 	[self addSubview:_timeLabel];
 	[self addSubview:_dateLabel];
@@ -243,7 +265,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self _updateLabels];
 }
 -(void)setLegibilitySettings:(_UILegibilitySettings *)arg1 {
-	NSLog(@"[Cirrus] LSForecastView: updating legibility settings");
 	_legibilitySettings = arg1;
 	[_timeLabel updateForChangedSettings:arg1];
 	[_tempLabel updateForChangedSettings:arg1];
@@ -253,7 +274,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_degree updateForChangedSettings:arg1];
 	
 	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? arg1.secondaryColor:arg1.primaryColor)];
-	[self _updateDisplayedWeather];
 }
 -(_UILegibilitySettings *)legibilitySettings{
 	return _legibilitySettings;
@@ -392,20 +412,48 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	return _dateStrength;
 }
 
--(void)_updateDisplayedWeather{
+-(void)_updateDisplayedWeather {
+	BOOL isNight = ![[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] isDay];
+
 	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
-	NSString *imageName = idToFname([[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] conditionCode], ISNIGHT);
+	NSString *imageName = idToFname([[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] conditionCode], isNight);
 	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
 	[_iconView setImage:[UIImage imageNamed:iconPath]];
 	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? _legibilitySettings.secondaryColor:_legibilitySettings.primaryColor)];
 	
+
 	_tempLabel.string = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
+
+	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
+	_maxMinLabel.text = [NSString stringWithFormat:@"%@°\t%@°", ((DayForecast*)dayForecasts[0]).high, ((DayForecast*)dayForecasts[0]).low];
+
 	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
+	
 
 	_forecastOne.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[0]).time, ((HourlyForecast*)hourlyForecasts[0]).detail];
 	_forecastTwo.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[1]).time, ((HourlyForecast*)hourlyForecasts[1]).detail];
 	_forecastThree.string = [NSString stringWithFormat:@"%@: %@°", ((HourlyForecast*)hourlyForecasts[2]).time, ((HourlyForecast*)hourlyForecasts[2]).detail];
 	[self layoutSubviews];
+}
+
+-(void)_forceWeatherUpdate {
+	City *localCity = [[%c(WeatherPreferences) sharedPreferences] localWeatherCity];
+	WeatherLocationManager *weatherLocationManager = [%c(WeatherLocationManager) sharedWeatherLocationManager];
+
+	CLLocationManager *locationManager = [[CLLocationManager alloc]init];
+	[weatherLocationManager setDelegate:locationManager];
+
+	if(![weatherLocationManager locationTrackingIsReady]) {
+		[weatherLocationManager setLocationTrackingReady:YES activelyTracking:NO watchKitExtension:nil];
+	}
+
+	[[%c(WeatherPreferences) sharedPreferences] setLocalWeatherEnabled:YES];
+	[weatherLocationManager setLocationTrackingActive:YES];
+
+	[[%c(TWCLocationUpdater) sharedLocationUpdater] updateWeatherForLocation:[weatherLocationManager location] city:localCity];
+
+	[weatherLocationManager setLocationTrackingActive:NO];
+	[locationManager release];
 }
 @end

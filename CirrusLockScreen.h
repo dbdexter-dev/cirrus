@@ -73,4 +73,5 @@
 -(double)timeStrength;
 -(double)dateStrength;
 -(void)_updateDisplayedWeather;
+-(void)_forceWeatherUpdate;
 @end

@@ -8,6 +8,15 @@
 @property (nonatomic,retain) CirrusLSForecastView *dateView;
 @end
 
+@interface City : NSObject
+-(NSDate*)updateTime;
+@end
+
+@interface WeatherPreferences : NSObject
++(id)sharedPreferences;
+-(City*)localWeatherCity;
+@end
+
 static BOOL isEnabled;
 static double updateInterval;
 /**
@@ -52,6 +61,13 @@ static void reloadPreferences(CFNotificationCenterRef center, void *observer,
 						 self.dateView.frame.size.width,
 						 self.dateView.frame.size.height+40); 
 	}
+}
+%end
+
+%hook CirrusLSForecastView
+-(void)_forceWeatherUpdate {
+	if([[NSDate date] compare:[[[[%c(WeatherPreferences)sharedPreferences]localWeatherCity]updateTime] dateByAddingTimeInterval:updateInterval*3600]] == NSOrderedDescending)
+		%orig();
 }
 %end
 

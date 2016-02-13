@@ -52,9 +52,9 @@
 			<key>showValue</key>
 			<true/>
 			<key>max</key>
-			<real>6.0</real>
+			<real>3.0</real>
 			<key>min</key>
-			<real>0.5</real>
+			<real>0.25</real>
 			<key>PostNotification</key>
 			<string>com.dbdexter.cirruspreferences</string>
 		</dict>

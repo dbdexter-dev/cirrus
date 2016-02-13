@@ -26,8 +26,8 @@
 
 @implementation cirrusPreferencesListController
 - (id)specifiers {
-	if(!_specifiers) {
-		 _specifiers = [self loadSpecifiersFromPlistName:@"cirrusPreferences" target:self];
+	if(_specifiers == nil) {
+		_specifiers = [[self loadSpecifiersFromPlistName:@"cirrusPreferences" target:self] retain];
 	}
 	return _specifiers;
 }
