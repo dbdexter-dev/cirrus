@@ -239,7 +239,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastOne release];
 	[_forecastTwo release];
 	[_forecastThree release];
-	[_legibilitySettings release];
 	
 	NSLog(@"[Cirrus] LSForecastView: initialized");
 	return self;
@@ -247,15 +246,15 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 -(void)dealloc{
 	NSLog(@"[Cirrus] LSForecastView: deallocating");
+	[_legibilitySettings release];
 	[_dateFormatter release];
 	[super dealloc];
 }
 -(void)setTextColor:(UIColor *)arg1{
-	_defaultColor = _legibilitySettings.primaryColor;
 	[_legibilitySettings setPrimaryColor:arg1];
+	_textColor = arg1;
 	[self setLegibilitySettings:_legibilitySettings];
 	[_iconView setTintColor:arg1];
-	_legibilitySettings.primaryColor = _defaultColor;
 	
 }
 -(UIColor *)textColor{
@@ -267,7 +266,8 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 -(void)setLegibilitySettings:(_UILegibilitySettings *)arg1 {
 	[self _updateDisplayedWeather];
-	_legibilitySettings = arg1;
+	_legibilitySettings.primaryColor = arg1.primaryColor;
+	_legibilitySettings.secondaryColor = arg1.secondaryColor;
 	[_timeLabel updateForChangedSettings:arg1];
 	[_tempLabel updateForChangedSettings:arg1];
 	[_forecastOne updateForChangedSettings:arg1];
@@ -425,7 +425,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
 	[_iconView setImage:[UIImage imageNamed:iconPath]];
 	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-	[_iconView setTintColor:_tempLabel.drawingColor];
+//	[_iconView setTintColor:_tempLabel.drawingColor];
 	
 	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
 	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
