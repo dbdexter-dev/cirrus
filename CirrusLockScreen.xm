@@ -1,6 +1,152 @@
 #import "CirrusLockScreen.h"
+#import <Weather/HourlyForecast.h>
+#import <Weather/DayForecast.h>
+#import <coreLocation/CoreLocation.h>
+
 #define LSFONT @".SFUIDisplay-Ultralight"
 #define BUNDLE @"/Library/Application Support/Cirrus"
+
+@interface City : NSObject
+-(NSMutableArray*)hourlyForecasts;
+-(NSMutableArray*)dayForecasts;
+-(unsigned long long)conditionCode;
+-(NSString *)temperature;
+-(unsigned long long)sunriseTime;
+-(unsigned long long)sunsetTime;
+-(BOOL)isDay;
+@end
+
+@interface WeatherPreferences : NSObject
++(id)sharedPreferences;
+-(City*)localWeatherCity;
+-(void)setLocalWeatherEnabled:(BOOL)arg1;
+-(BOOL)isCelsius;
+@end
+
+@interface WeatherLocationManager : NSObject
++(id)sharedWeatherLocationManager;
+-(BOOL)locationTrackingIsReady;
+-(void)setLocationTrackingReady:(BOOL)arg1 activelyTracking:(BOOL)arg2 watchKitExtension:(id)arg3;
+-(void)setLocationTrackingActive:(BOOL)arg1;
+-(CLLocation*)location;
+-(void)setDelegate:(id)arg1;
+@end
+
+@interface TWCLocationUpdater : NSObject
++(id)sharedLocationUpdater;
+-(void)updateWeatherForLocation:(CLLocation*)arg1 city:(City*)arg2;
+@end
+
+/**
+ * An extremely time-consuming function that converts weather IDs into filenames
+ * It also takes care of returning a filename based on current lighting conditions
+ */
+
+static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
+	switch(weatherID) {
+		case 0:
+		case 1:
+		case 2:
+		case 19:
+			return @"Tornado";
+			break;
+		
+		case 3:
+		case 4:
+		case 45:
+			return @"Cloud-Lightning";
+			break;
+
+		case 5:
+		case 6:
+		case 7:
+		case 13:
+		case 14:
+		case 15:
+		case 16:
+		case 18:
+		case 41:
+		case 43:
+		case 46:
+			return @"Cloud-Snow";
+			break;
+		
+		case 42:
+			return isNight ? @"Cloud-Snow-Moon" : @"Cloud-Snow-Sun";
+			break;
+
+		case 8:
+		case 9:
+			return @"Cloud-Drizzle";
+			break;
+
+		case 10:
+		case 17:
+		case 35:
+			return @"Cloud-Hail";
+			break;
+
+		case 11:
+		case 12:
+			return @"Cloud-Rain";
+			break;
+
+		case 20:
+		case 21:
+		case 22:
+		case 23:
+			return @"Cloud-Fog";
+			break;
+
+		case 24:	
+			return @"Wind";
+			break;
+
+		case 26:
+			return @"Cloud";
+			break;
+
+		case 27:
+		case 29:
+		case 33:
+			return @"Cloud-Moon";
+			break;
+
+		case 28:
+		case 30:
+		case 34:
+			return @"Cloud-Sun";
+			break;
+
+		case 31:
+			return @"Moon";
+			break;
+
+		case 32:
+			return @"Sun";
+			break;
+
+		case 37:
+		case 38:
+		case 39:
+		case 47:
+			return isNight ? @"Cloud-Lightning-Moon" : @"Cloud-Lightning-Sun";
+			break;
+
+		case 40:
+			return isNight ? @"Cloud-Rain-Moon" : @"Cloud-Rain-Sun";
+			break;
+
+
+		case 44:
+			return isNight ? @"Cloud-Moon" : @"Cloud-Sun";
+			break;
+
+		default:
+			return @"Cloud-Refresh";
+			break;
+	}
+}
 
 @implementation CirrusLSForecastView : UIView
 
@@ -69,6 +215,8 @@
 
 	_useLegibilityLabels = YES;
 	
+	[self _forceWeatherUpdate];
+
 	[self addSubview:_iconView];
 	[self addSubview:_timeLabel];
 	[self addSubview:_dateLabel];
@@ -80,7 +228,6 @@
 	[_iconView addSubview:_degree];
 	
 	[self _updateLabels];
-	[self _updateWeatherInfo];
 	[self _updateDisplayedWeather];
 
 	[_degree release];
@@ -92,7 +239,6 @@
 	[_forecastOne release];
 	[_forecastTwo release];
 	[_forecastThree release];
-	[_legibilitySettings release];
 	
 	NSLog(@"[Cirrus] LSForecastView: initialized");
 	return self;
@@ -100,15 +246,15 @@
 
 -(void)dealloc{
 	NSLog(@"[Cirrus] LSForecastView: deallocating");
+	[_legibilitySettings release];
 	[_dateFormatter release];
 	[super dealloc];
 }
 -(void)setTextColor:(UIColor *)arg1{
-	_defaultColor = _legibilitySettings.primaryColor;
 	[_legibilitySettings setPrimaryColor:arg1];
+	_textColor = arg1;
 	[self setLegibilitySettings:_legibilitySettings];
 	[_iconView setTintColor:arg1];
-	_legibilitySettings.primaryColor = _defaultColor;
 	
 }
 -(UIColor *)textColor{
@@ -119,8 +265,9 @@
 	[self _updateLabels];
 }
 -(void)setLegibilitySettings:(_UILegibilitySettings *)arg1 {
-	NSLog(@"[Cirrus] LSForecastView: updating legibility settings");
-	_legibilitySettings = arg1;
+	[self _updateDisplayedWeather];
+	_legibilitySettings.primaryColor = arg1.primaryColor;
+	_legibilitySettings.secondaryColor = arg1.secondaryColor;
 	[_timeLabel updateForChangedSettings:arg1];
 	[_tempLabel updateForChangedSettings:arg1];
 	[_forecastOne updateForChangedSettings:arg1];
@@ -128,22 +275,22 @@
 	[_forecastThree updateForChangedSettings:arg1];
 	[_degree updateForChangedSettings:arg1];
 	
-	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? arg1.secondaryColor:arg1.primaryColor)];
-	[self _updateDisplayedWeather];
+	[_iconView setTintColor:_tempLabel.drawingColor];
 }
 -(_UILegibilitySettings *)legibilitySettings{
 	return _legibilitySettings;
 }
 -(void)_updateLabels{
-		[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"HH:mm"
-									      options:0
-									       locale:[NSLocale currentLocale]]];
-		_timeLabel.string = [_dateFormatter stringFromDate:_date];
+	[self _updateDisplayedWeather];
+	[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"HH:mm"
+								      options:0
+								       locale:[NSLocale currentLocale]]];
+	_timeLabel.string = [_dateFormatter stringFromDate:_date];
 
-		[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"EdMMM"
-									      options:0
-									       locale:[NSLocale currentLocale]]];
-		_dateLabel.text = [_dateFormatter stringFromDate:_date];
+	[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"EdMMM"
+								      options:0
+								       locale:[NSLocale currentLocale]]];
+	_dateLabel.text = [_dateFormatter stringFromDate:_date];
 
 }
 -(void)_addLabels{}		//The labels are actually added inside the -init method
@@ -268,6 +415,73 @@
 	return _dateStrength;
 }
 
--(void)_updateDisplayedWeather {}		//See Tweak.xm for an actual implementation
--(void)_updateWeatherInfo {}			//See Tweak.xm for an actual implementation
+-(void)_updateDisplayedWeather {
+	[self _forceWeatherUpdate];
+	BOOL isNight = ![[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] isDay];
+	BOOL isCelsius = [[%c(WeatherPreferences) sharedPreferences] isCelsius];
+
+	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
+	NSString *imageName = idToFname([[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] conditionCode], isNight);
+	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
+	[_iconView setImage:[UIImage imageNamed:iconPath]];
+	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+//	[_iconView setTintColor:_tempLabel.drawingColor];
+	
+	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
+	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
+	
+	NSString* currentCelsius = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
+
+	int currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
+	int maxTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).high intValue] : ([((DayForecast*)dayForecasts[0]).high intValue] * 1.8 + 32);
+	int minTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).low intValue] : ([((DayForecast*)dayForecasts[0]).low intValue] * 1.8 + 32);
+	int oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[0]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[0]).detail intValue] * 1.8 + 32);
+	int twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
+	int threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
+
+
+	_tempLabel.string = [NSString stringWithFormat:@"%d", currentTemp];
+
+	_maxMinLabel.text = [NSString stringWithFormat:@"%d°\t%d°", maxTemp, minTemp];
+
+	
+	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
+	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];
+	
+	[viewDateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"ha"
+									 options:nil
+									  locale:[NSLocale currentLocale]]];
+	forecastDateFormatter.dateFormat=@"HH:mm";
+	NSString *forecastOneTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[0]).time]];
+	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
+	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
+
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %d°", forecastOneTime, oneTemp];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %d°", forecastTwoTime, twoTemp];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %d°", forecastThreeTime, threeTemp];
+
+	[viewDateFormatter release];
+	[forecastDateFormatter release];
+	[self layoutSubviews];
+}
+
+-(void)_forceWeatherUpdate {
+	City *localCity = [[%c(WeatherPreferences) sharedPreferences] localWeatherCity];
+	WeatherLocationManager *weatherLocationManager = [%c(WeatherLocationManager) sharedWeatherLocationManager];
+
+	CLLocationManager *locationManager = [[CLLocationManager alloc]init];
+	[weatherLocationManager setDelegate:locationManager];
+
+	if(![weatherLocationManager locationTrackingIsReady]) {
+		[weatherLocationManager setLocationTrackingReady:YES activelyTracking:NO watchKitExtension:nil];
+	}
+
+	[[%c(WeatherPreferences) sharedPreferences] setLocalWeatherEnabled:YES];
+	[weatherLocationManager setLocationTrackingActive:YES];
+
+	[[%c(TWCLocationUpdater) sharedLocationUpdater] updateWeatherForLocation:[weatherLocationManager location] city:localCity];
+
+	[weatherLocationManager setLocationTrackingActive:NO];
+	[locationManager release];
+}
 @end
