@@ -20,6 +20,7 @@
 +(id)sharedPreferences;
 -(City*)localWeatherCity;
 -(void)setLocalWeatherEnabled:(BOOL)arg1;
+-(BOOL)isCelsius;
 @end
 
 @interface WeatherLocationManager : NSObject
@@ -265,6 +266,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self _updateLabels];
 }
 -(void)setLegibilitySettings:(_UILegibilitySettings *)arg1 {
+	[self _updateDisplayedWeather];
 	_legibilitySettings = arg1;
 	[_timeLabel updateForChangedSettings:arg1];
 	[_tempLabel updateForChangedSettings:arg1];
@@ -273,21 +275,22 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastThree updateForChangedSettings:arg1];
 	[_degree updateForChangedSettings:arg1];
 	
-	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? arg1.secondaryColor:arg1.primaryColor)];
+	[_iconView setTintColor:_tempLabel.drawingColor];
 }
 -(_UILegibilitySettings *)legibilitySettings{
 	return _legibilitySettings;
 }
 -(void)_updateLabels{
-		[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"HH:mm"
-									      options:0
-									       locale:[NSLocale currentLocale]]];
-		_timeLabel.string = [_dateFormatter stringFromDate:_date];
+	[self _updateDisplayedWeather];
+	[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"HH:mm"
+								      options:0
+								       locale:[NSLocale currentLocale]]];
+	_timeLabel.string = [_dateFormatter stringFromDate:_date];
 
-		[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"EdMMM"
-									      options:0
-									       locale:[NSLocale currentLocale]]];
-		_dateLabel.text = [_dateFormatter stringFromDate:_date];
+	[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"EdMMM"
+								      options:0
+								       locale:[NSLocale currentLocale]]];
+	_dateLabel.text = [_dateFormatter stringFromDate:_date];
 
 }
 -(void)_addLabels{}		//The labels are actually added inside the -init method
@@ -415,21 +418,32 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 -(void)_updateDisplayedWeather {
 	[self _forceWeatherUpdate];
 	BOOL isNight = ![[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] isDay];
+	BOOL isCelsius = [[%c(WeatherPreferences) sharedPreferences] isCelsius];
 
 	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
 	NSString *imageName = idToFname([[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] conditionCode], isNight);
 	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
 	[_iconView setImage:[UIImage imageNamed:iconPath]];
 	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? _legibilitySettings.secondaryColor:_legibilitySettings.primaryColor)];
+	[_iconView setTintColor:_tempLabel.drawingColor];
 	
-
-	_tempLabel.string = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
-
-	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
-	_maxMinLabel.text = [NSString stringWithFormat:@"%@°\t%@°", ((DayForecast*)dayForecasts[0]).high, ((DayForecast*)dayForecasts[0]).low];
-
 	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
+	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
+	
+	NSString* currentCelsius = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
+
+	int currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
+	int maxTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).high intValue] : ([((DayForecast*)dayForecasts[0]).high intValue] * 1.8 + 32);
+	int minTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).low intValue] : ([((DayForecast*)dayForecasts[0]).low intValue] * 1.8 + 32);
+	int oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[0]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[0]).detail intValue] * 1.8 + 32);
+	int twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
+	int threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
+
+
+	_tempLabel.string = [NSString stringWithFormat:@"%d", currentTemp];
+
+	_maxMinLabel.text = [NSString stringWithFormat:@"%d°\t%d°", maxTemp, minTemp];
+
 	
 	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
 	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];
@@ -442,9 +456,9 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
 	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
 
-	_forecastOne.string = [NSString stringWithFormat:@"%@: %@°", forecastOneTime, ((HourlyForecast*)hourlyForecasts[0]).detail];
-	_forecastTwo.string = [NSString stringWithFormat:@"%@: %@°", forecastTwoTime, ((HourlyForecast*)hourlyForecasts[1]).detail];
-	_forecastThree.string = [NSString stringWithFormat:@"%@: %@°", forecastThreeTime, ((HourlyForecast*)hourlyForecasts[2]).detail];
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %d°", forecastOneTime, oneTemp];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %d°", forecastTwoTime, twoTemp];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %d°", forecastThreeTime, threeTemp];
 
 	[viewDateFormatter release];
 	[forecastDateFormatter release];
