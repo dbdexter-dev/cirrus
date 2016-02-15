@@ -46,7 +46,7 @@ static void reloadPreferences(CFNotificationCenterRef center, void *observer,
 %hook SBFLockScreenDateView
 +(id)alloc {
 	if(isEnabled)
-		return [CirrusLSForecastView alloc];
+		return (SBFLockScreenDateView*)[CirrusLSForecastView alloc];
 	else
 		return %orig();
 }

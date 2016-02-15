@@ -1,5 +1,5 @@
 theos
 .theos/
-*.deb
+debs/
 **/obj/
 **/_/

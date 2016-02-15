@@ -282,14 +282,13 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 -(void)_updateLabels{
 	[self _updateDisplayedWeather];
-	[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"HH:mm"
-								      options:0
-								       locale:[NSLocale currentLocale]]];
+	_dateFormatter.timeStyle = NSDateFormatterShortStyle;
+	_dateFormatter.dateStyle = NSDateFormatterNoStyle;
 	_timeLabel.string = [_dateFormatter stringFromDate:_date];
+       [_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"EdMMM"
+                                                                     options:0
+                                                                      locale:[NSLocale currentLocale]]];
 
-	[_dateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"EdMMM"
-								      options:0
-								       locale:[NSLocale currentLocale]]];
 	_dateLabel.text = [_dateFormatter stringFromDate:_date];
 
 }
@@ -402,7 +401,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self setDateAlphaPercentage: arg1];
 }
 -(void)setCustomSubtitleText:(id)arg1 withColor:(id)arg2 {
-	NSLog(@"[Cirrus] LSForecastView: trying to set custom subtitle %@ with color %@", arg1, arg2);
 }
 -(double)timeBaselineOffsetFromOrigin{			//No clue what this is for
 	return 0; 
@@ -439,17 +437,17 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	
 	NSString* currentCelsius = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
 
-	int currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
-	int maxTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).high intValue] : ([((DayForecast*)dayForecasts[0]).high intValue] * 1.8 + 32);
-	int minTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).low intValue] : ([((DayForecast*)dayForecasts[0]).low intValue] * 1.8 + 32);
-	int oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[0]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[0]).detail intValue] * 1.8 + 32);
-	int twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
-	int threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
+	NSInteger currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
+	NSInteger maxTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).high intValue] : ([((DayForecast*)dayForecasts[0]).high intValue] * 1.8 + 32);
+	NSInteger minTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).low intValue] : ([((DayForecast*)dayForecasts[0]).low intValue] * 1.8 + 32);
+	NSInteger oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[0]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[0]).detail intValue] * 1.8 + 32);
+	NSInteger twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
+	NSInteger threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
 
 
-	_tempLabel.string = [NSString stringWithFormat:@"%d", currentTemp];
+	_tempLabel.string = [NSString stringWithFormat:@"%ld", (long)currentTemp];
 
-	_maxMinLabel.text = [NSString stringWithFormat:@"%d°\t%d°", maxTemp, minTemp];
+	_maxMinLabel.text = [NSString stringWithFormat:@"%ld°\t%ld°", (long)maxTemp, (long)minTemp];
 	
 	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
 	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];
@@ -462,9 +460,9 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
 	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
 
-	_forecastOne.string = [NSString stringWithFormat:@"%@: %d°", forecastOneTime, oneTemp];
-	_forecastTwo.string = [NSString stringWithFormat:@"%@: %d°", forecastTwoTime, twoTemp];
-	_forecastThree.string = [NSString stringWithFormat:@"%@: %d°", forecastThreeTime, threeTemp];
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld°", forecastOneTime, (long)oneTemp];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld°", forecastTwoTime, (long)twoTemp];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld°", forecastThreeTime, (long)threeTemp];
 
 	[viewDateFormatter release];
 	[forecastDateFormatter release];
