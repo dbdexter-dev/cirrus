@@ -240,17 +240,20 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastTwo release];
 	[_forecastThree release];
 	
-	NSLog(@"[Cirrus] LSForecastView: initialized");
+	HBLogDebug(@"[Cirrus] LSForecastView: initialized");
 	return self;
 }
 
 -(void)dealloc{
-	NSLog(@"[Cirrus] LSForecastView: deallocating");
+	HBLogDebug(@"[Cirrus] LSForecastView: deallocating");
 	[_legibilitySettings release];
 	[_dateFormatter release];
 	[super dealloc];
 }
 -(void)setTextColor:(UIColor *)arg1{
+	HBLogDebug(@"[Cirrus] LSForecastView: trying to set text color to %@", arg1);
+	if(!arg1)
+		return;
 	[_legibilitySettings setPrimaryColor:arg1];
 	_textColor = arg1;
 	[self setLegibilitySettings:_legibilitySettings];
@@ -266,6 +269,8 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 -(void)setLegibilitySettings:(_UILegibilitySettings *)arg1 {
 	[self _updateDisplayedWeather];
+	if(!arg1)
+		return;
 	_legibilitySettings.primaryColor = arg1.primaryColor;
 	_legibilitySettings.secondaryColor = arg1.secondaryColor;
 	[_timeLabel updateForChangedSettings:arg1];
@@ -281,6 +286,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	return _legibilitySettings;
 }
 -(void)_updateLabels{
+	HBLogDebug(@"[Cirrus] LSForecastView: updating labels");
 	[self _updateDisplayedWeather];
 	_dateFormatter.timeStyle = NSDateFormatterShortStyle;
 	_dateFormatter.dateStyle = NSDateFormatterNoStyle;
@@ -294,6 +300,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 -(void)_addLabels{}		//The labels are actually added inside the -init method
 -(void)layoutSubviews {
+	HBLogDebug(@"[Cirrus] LSForecastView: layoutSubviews called");
 	[super layoutSubviews];
 	[_tempLabel sizeToFit];
 	[_maxMinLabel sizeToFit];
@@ -388,7 +395,8 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 -(BOOL)isDateHidden{
 	return self.dateHidden;
 }
--(void)setDateHidden:(BOOL)arg1 {	//This is called when iOS wahts to show a message below the time view,
+-(void)setDateHidden:(BOOL)arg1 {	//This is called when iOS wants to show a message below the time view,
+	HBLogDebug(@"[Cirrus] LSForecastView: will now %@ date", (arg1 ? @"hide" : @"show"));
 	_dateLabel.hidden = arg1;	//e.g. the batery percentage when the device is plugged in
 	_timeLabel.hidden = arg1;
 	_forecastOne.hidden = arg1;
@@ -417,7 +425,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 -(void)_updateDisplayedWeather {
 	[self _forceWeatherUpdate];
-
+	HBLogDebug(@"[Cirrus] LSForecastView: updating displayed weather");
 //TODO: check whether this is necessary, as my iPhone crashed in the middle of the night while in airplane mode
 //	Crash log @/home/dbdexter/iOS/crashLogs
 //	if(![[%c(WeatherPreferences sharedPreferences)] localWeatherCity])
@@ -470,6 +478,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 
 -(void)_forceWeatherUpdate {
+	HBLogDebug(@"[Cirrus] LSForecastView: updating current weather info");
 	City *localCity = [[%c(WeatherPreferences) sharedPreferences] localWeatherCity];
 	WeatherLocationManager *weatherLocationManager = [%c(WeatherLocationManager) sharedWeatherLocationManager];
 
