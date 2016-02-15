@@ -401,12 +401,14 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self setDateHidden: !arg2];
 	[self setDateAlphaPercentage: arg1];
 }
--(void)setCustomSubtitleText:(id)arg1 withColor:(id)arg2 {}
--(double)timeBaselineOffsetFromOrigin{		//No clue what this is for
-	return 0;
+-(void)setCustomSubtitleText:(id)arg1 withColor:(id)arg2 {
+	NSLog(@"[Cirrus] LSForecastView: trying to set custom subtitle %@ with color %@", arg1, arg2);
 }
--(double)dateBaselineOffsetFromOrigin{		//No clue either
-	return 0;
+-(double)timeBaselineOffsetFromOrigin{			//No clue what this is for
+	return 0; 
+}
+-(double)dateBaselineOffsetFromOrigin{
+	return _tempLabel.frame.origin.y + _tempLabel.frame.size.height + 15;
 }
 -(double)timeStrength {
 	return _timeStrength;
@@ -417,6 +419,12 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 -(void)_updateDisplayedWeather {
 	[self _forceWeatherUpdate];
+
+//TODO: check whether this is necessary, as my iPhone crashed in the middle of the night while in airplane mode
+//	Crash log @/home/dbdexter/iOS/crashLogs
+//	if(![[%c(WeatherPreferences sharedPreferences)] localWeatherCity])
+//		return;
+
 	BOOL isNight = ![[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] isDay];
 	BOOL isCelsius = [[%c(WeatherPreferences) sharedPreferences] isCelsius];
 
@@ -425,7 +433,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
 	[_iconView setImage:[UIImage imageNamed:iconPath]];
 	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-//	[_iconView setTintColor:_tempLabel.drawingColor];
 	
 	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
 	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
@@ -443,7 +450,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	_tempLabel.string = [NSString stringWithFormat:@"%d", currentTemp];
 
 	_maxMinLabel.text = [NSString stringWithFormat:@"%d°\t%d°", maxTemp, minTemp];
-
 	
 	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
 	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];

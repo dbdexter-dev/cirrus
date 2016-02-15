@@ -54,13 +54,13 @@ static void reloadPreferences(CFNotificationCenterRef center, void *observer,
 
 %hook SBLockScreenView
 -(void)_layoutDateView {
-	%orig();
-	if(isEnabled) {								//The frame we're assigned by default is totally off, and it's also small: fix that
-		self.dateView.frame = CGRectMake(self.dateView.frame.origin.x,
-						 28.5,
-						 self.dateView.frame.size.width,
-						 self.dateView.frame.size.height+40); 
-	}
+       %orig();
+       if(isEnabled) {                                                         //The frame we're assigned by default is totally off, and it's also small: fix that
+               self.dateView.frame = CGRectMake(self.dateView.frame.origin.x,
+                                                28.5,
+                                                self.dateView.frame.size.width,
+                                                self.dateView.frame.size.height+40);
+       }
 }
 %end
 
