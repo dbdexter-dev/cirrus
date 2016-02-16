@@ -140,8 +140,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 	[_iconView setTintColor:(_tempLabel.usesSecondaryColor ? _legibilitySettings.secondaryColor:_legibilitySettings.primaryColor)];
 	
-	_dateLabel = [[UILabel alloc]init];
-	_maxMinLabel = [[UILabel alloc]init];
 	_timeLabel = [[_UILegibilityLabel alloc]initWithSettings:_legibilitySettings
 							strength:_timeStrength
 							  string:@"00:00"
@@ -173,14 +171,14 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 							 font:[UIFont systemFontOfSize:15]];
 	_degree.frame = CGRectMake(-4, 14, 10, 10);
 	
-	[_dateLabel setTextAlignment:NSTextAlignmentRight];
-	_dateLabel.font = [UIFont fontWithName:@".SFUIDisplay-Thin" size:14];
-	_dateLabel.textColor = [UIColor colorWithWhite:0.6 alpha:1];
-		
-	[_maxMinLabel setTextAlignment:NSTextAlignmentRight];
-	_maxMinLabel.font = [UIFont systemFontOfSize:11];
-	_maxMinLabel.textColor = [UIColor colorWithWhite:0.6 alpha:1];
-	_maxMinLabel.text = @"0°\t0°";
+	_dateLabel = [[_UILegibilityLabel alloc] initWithSettings:_legibilitySettings
+							 strength:_timeStrength
+							   string:@""
+							     font:[UIFont fontWithName:@".SFUIDisplay-Thin" size:14]];
+	_maxMinLabel = [[_UILegibilityLabel alloc] initWithSettings:_legibilitySettings
+							 strength:_timeStrength
+							   string:@""
+							     font:[UIFont systemFontOfSize:11]];
 
 	_useLegibilityLabels = YES;
 	
@@ -209,8 +207,18 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastTwo release];
 	[_forecastThree release];
 	
+	
 	HBLogDebug(@"[Cirrus] LSForecastView: initialized");
 	return self;
+}
+
+-(void)cfw_colorize:(CFWColorInfo*)colorInfo {
+	_UILegibilitySettings *legibilitySettings = [[_UILegibilitySettings alloc]initWithStyle:0
+										   primaryColor:colorInfo.primaryColor
+										 secondaryColor:colorInfo.secondaryColor
+										    shadowColor:colorInfo.backgroundColor];
+	[self setLegibilitySettings:legibilitySettings];
+	[legibilitySettings release];
 }
 
 -(void)dealloc{
@@ -247,6 +255,8 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastOne updateForChangedSettings:arg1];
 	[_forecastTwo updateForChangedSettings:arg1];
 	[_forecastThree updateForChangedSettings:arg1];
+	[_dateLabel updateForChangedSettings:arg1];
+	[_maxMinLabel updateForChangedSettings:arg1];
 	[_degree updateForChangedSettings:arg1];
 	
 	[_iconView setTintColor:_tempLabel.drawingColor];
@@ -264,7 +274,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
                                                                      options:0
                                                                       locale:[NSLocale currentLocale]]];
 
-	_dateLabel.text = [_dateFormatter stringFromDate:_date];
+	_dateLabel.string = [_dateFormatter stringFromDate:_date];
 
 }
 -(void)_addLabels{}		//The labels are actually added inside the -init method
@@ -316,7 +326,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 -(void)updateFormat{}
 -(id)_dateText{
-	return _dateLabel.text;
+	return _dateLabel.string;
 }
 -(void)_updateLegibilityLabelsWithUpdatedDateString:(BOOL)arg1 {}
 -(id)_dateColor{
@@ -424,7 +434,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 	_tempLabel.string = [NSString stringWithFormat:@"%ld", (long)currentTemp];
 
-	_maxMinLabel.text = [NSString stringWithFormat:@"%ld°\t%ld°", (long)maxTemp, (long)minTemp];
+	_maxMinLabel.string= [NSString stringWithFormat:@"%ld°\t%ld°", (long)maxTemp, (long)minTemp];
 	
 	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
 	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];

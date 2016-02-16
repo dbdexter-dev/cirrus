@@ -44,6 +44,17 @@
 -(void)updateWeatherForCity:(City*)arg1;
 @end
 
+@interface CFWColorInfo : NSObject
+@property(nonatomic, retain) UIColor *backgroundColor;
+@property(nonatomic, retain) UIColor *primaryColor;
+@property(nonatomic, retain) UIColor *secondaryColor;
+@property(nonatomic, assign, getter=isBackgroundDark) BOOL backgroundDark;
+
++ (instancetype)colorInfoWithAnalyzedInfo:(struct AnalyzedInfo)info;
+
+- (instancetype)initWithAnalyzedInfo:(struct AnalyzedInfo)info;
+@end
+
 @interface CirrusLSForecastView : UIView {
 	NSDate* _nextCheckDate;
 	_UILegibilityLabel* _timeLabel;
@@ -52,9 +63,9 @@
 	_UILegibilityLabel* _forecastTwo;
 	_UILegibilityLabel* _forecastThree;
 	_UILegibilityLabel* _degree;
-	
-	UILabel* _dateLabel;
-	UILabel* _maxMinLabel;
+	_UILegibilityLabel* _dateLabel;	
+	_UILegibilityLabel* _maxMinLabel;
+
 	UIImageView* _iconView;
 	BOOL _useLegibilityLabels;
 	double _timeAlpha;
