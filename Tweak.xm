@@ -7,18 +7,9 @@
 @interface SBLockScreenView : UIView
 @property (nonatomic,retain) CirrusLSForecastView *dateView;
 @end
-
-@interface City : NSObject
--(NSDate*)updateTime;
-@end
-
-@interface WeatherPreferences : NSObject
-+(id)sharedPreferences;
--(City*)localWeatherCity;
-@end
-
 static BOOL isEnabled;
 static double updateInterval;
+static double y_offset;
 /**
  * A function that updates the global variables syncing them with the preferences
  * the user can access in a preference pane
@@ -27,6 +18,8 @@ static double updateInterval;
 static void loadPreferences() {
 	isEnabled = (BOOL)CFPreferencesGetAppBooleanValue(CFSTR("enabled"), CFSTR(APP_ID), NULL);
 	updateInterval = [(id)CFPreferencesCopyAppValue(CFSTR("updateInterval"), CFSTR(APP_ID)) doubleValue];
+	y_offset = [(id)CFPreferencesCopyAppValue(CFSTR("y_offset"), CFSTR(APP_ID)) doubleValue];
+	
 }
 
 /**
@@ -57,7 +50,7 @@ static void reloadPreferences(CFNotificationCenterRef center, void *observer,
        %orig();
        if(isEnabled) {                                                         //The frame we're assigned by default is totally off, and it's also small: fix that
                self.dateView.frame = CGRectMake(self.dateView.frame.origin.x,
-                                                28.5,
+                                                y_offset,
                                                 self.dateView.frame.size.width,
                                                 self.dateView.frame.size.height+40);
        }

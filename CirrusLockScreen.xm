@@ -6,37 +6,6 @@
 #define LSFONT @".SFUIDisplay-Ultralight"
 #define BUNDLE @"/Library/Application Support/Cirrus"
 
-@interface City : NSObject
--(NSMutableArray*)hourlyForecasts;
--(NSMutableArray*)dayForecasts;
--(unsigned long long)conditionCode;
--(NSString *)temperature;
--(unsigned long long)sunriseTime;
--(unsigned long long)sunsetTime;
--(BOOL)isDay;
-@end
-
-@interface WeatherPreferences : NSObject
-+(id)sharedPreferences;
--(City*)localWeatherCity;
--(void)setLocalWeatherEnabled:(BOOL)arg1;
--(BOOL)isCelsius;
-@end
-
-@interface WeatherLocationManager : NSObject
-+(id)sharedWeatherLocationManager;
--(BOOL)locationTrackingIsReady;
--(void)setLocationTrackingReady:(BOOL)arg1 activelyTracking:(BOOL)arg2 watchKitExtension:(id)arg3;
--(void)setLocationTrackingActive:(BOOL)arg1;
--(CLLocation*)location;
--(void)setDelegate:(id)arg1;
-@end
-
-@interface TWCLocationUpdater : NSObject
-+(id)sharedLocationUpdater;
--(void)updateWeatherForLocation:(CLLocation*)arg1 city:(City*)arg2;
-@end
-
 /**
  * An extremely time-consuming function that converts weather IDs into filenames
  * It also takes care of returning a filename based on current lighting conditions
@@ -459,11 +428,11 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	
 	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
 	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];
-	
-	[viewDateFormatter setDateFormat:[NSDateFormatter dateFormatFromTemplate:@"ha"
-									 options:nil
-									  locale:[NSLocale currentLocale]]];
+
+	viewDateFormatter.dateFormat=@"ha";	
+	[forecastDateFormatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
 	forecastDateFormatter.dateFormat=@"HH:mm";
+
 	NSString *forecastOneTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[0]).time]];
 	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
 	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
