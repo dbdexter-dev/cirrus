@@ -124,5 +124,7 @@
 -(double)timeStrength;
 -(double)dateStrength;
 -(void)_updateDisplayedWeather;
+-(void)_updateDisplayedWeather_isLocal:(BOOL)arg1;
 -(void)_forceWeatherUpdate;
+-(void)_forceWeatherUpdate_isLocal:(BOOL)arg1;
 @end

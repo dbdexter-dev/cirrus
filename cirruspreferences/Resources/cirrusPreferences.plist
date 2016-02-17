@@ -9,6 +9,8 @@
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>General</string>
+			<key>footerText</key>
+			<string>If disabled, Cirrus will show the weather for the first entry in the Weather app</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -23,6 +25,22 @@
 			<string>enabled</string>
 			<key>label</key>
 			<string>Enable</string>
+			<key>PostNotification</key>
+			<string>com.dbdexter.cirruspreferences</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>cellClass</key>
+			<string>CustomSwitchTableCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.dbdexter.cirruspreferences</string>
+			<key>key</key>
+			<string>useLocalWeather</string>
+			<key>label</key>
+			<string>Use local weather</string>
 			<key>PostNotification</key>
 			<string>com.dbdexter.cirruspreferences</string>
 		</dict>

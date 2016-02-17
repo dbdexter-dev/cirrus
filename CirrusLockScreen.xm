@@ -402,27 +402,30 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	return _dateStrength;
 }
 
--(void)_updateDisplayedWeather {
-	[self _forceWeatherUpdate];
+-(void)_updateDisplayedWeather{}
+-(void)_updateDisplayedWeather_isLocal:(BOOL)useLocalWeather {
+	[self _forceWeatherUpdate_isLocal:useLocalWeather];
 	HBLogDebug(@"[Cirrus] LSForecastView: updating displayed weather");
 //TODO: check whether this is necessary, as my iPhone crashed in the middle of the night while in airplane mode
 //	Crash log @/home/dbdexter/iOS/crashLogs
 //	if(![[%c(WeatherPreferences sharedPreferences)] localWeatherCity])
 //		return;
-
-	BOOL isNight = ![[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] isDay];
+	City* _city = (useLocalWeather ? [[%c(WeatherPreferences) sharedPreferences] localWeatherCity] : [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]]);
+	BOOL isNight = ![_city isDay];
 	BOOL isCelsius = [[%c(WeatherPreferences) sharedPreferences] isCelsius];
 
+	HBLogDebug(@"[Cirrus] LSForecastView: will use city %@", _city);
+
 	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
-	NSString *imageName = idToFname([[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] conditionCode], isNight);
+	NSString *imageName = idToFname([_city conditionCode], isNight);
 	NSString *iconPath = [bundle pathForResource:imageName ofType:@"png"];	//Load image named based on the current weather info
 	[_iconView setImage:[UIImage imageNamed:iconPath]];
 	_iconView.image = [_iconView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 	
-	NSMutableArray *hourlyForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] hourlyForecasts];
-	NSMutableArray *dayForecasts  = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] dayForecasts];
+	NSMutableArray *hourlyForecasts  = [_city hourlyForecasts];
+	NSMutableArray *dayForecasts  = [_city dayForecasts];
 	
-	NSString* currentCelsius = [[[%c(WeatherPreferences) sharedPreferences] localWeatherCity] temperature];
+	NSString* currentCelsius = [_city temperature];
 
 	NSInteger currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
 	NSInteger maxTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).high intValue] : ([((DayForecast*)dayForecasts[0]).high intValue] * 1.8 + 32);
@@ -456,24 +459,31 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self layoutSubviews];
 }
 
--(void)_forceWeatherUpdate {
-	HBLogDebug(@"[Cirrus] LSForecastView: updating current weather info");
-	City *localCity = [[%c(WeatherPreferences) sharedPreferences] localWeatherCity];
-	WeatherLocationManager *weatherLocationManager = [%c(WeatherLocationManager) sharedWeatherLocationManager];
+-(void)_forceWeatherUpdate{}
+-(void)_forceWeatherUpdate_isLocal:(BOOL)useLocalWeather {
+	if(useLocalWeather) {
+		HBLogDebug(@"[Cirrus] LSForecastView: updating local current weather info");
+		City *localCity = [[%c(WeatherPreferences) sharedPreferences] localWeatherCity];
+		WeatherLocationManager *weatherLocationManager = [%c(WeatherLocationManager) sharedWeatherLocationManager];
 
-	CLLocationManager *locationManager = [[CLLocationManager alloc]init];
-	[weatherLocationManager setDelegate:locationManager];
+		CLLocationManager *locationManager = [[CLLocationManager alloc]init];
+		[weatherLocationManager setDelegate:locationManager];
 
-	if(![weatherLocationManager locationTrackingIsReady]) {
-		[weatherLocationManager setLocationTrackingReady:YES activelyTracking:NO watchKitExtension:nil];
+		if(![weatherLocationManager locationTrackingIsReady]) {
+			[weatherLocationManager setLocationTrackingReady:YES activelyTracking:NO watchKitExtension:nil];
+		}
+	
+		[[%c(WeatherPreferences) sharedPreferences] setLocalWeatherEnabled:YES];
+		[weatherLocationManager setLocationTrackingActive:YES];
+
+		[[%c(TWCLocationUpdater) sharedLocationUpdater] updateWeatherForLocation:[weatherLocationManager location] city:localCity];
+
+		[weatherLocationManager setLocationTrackingActive:NO];
+		[locationManager release];
+	} else {
+		HBLogDebug(@"[Cirrus] LSForecastView: updating first city weather info");
+		City *city = [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]];
+		[[%c(TWCCityUpdater) sharedCityUpdater] updateWeatherForCity:city];
 	}
-
-	[[%c(WeatherPreferences) sharedPreferences] setLocalWeatherEnabled:YES];
-	[weatherLocationManager setLocationTrackingActive:YES];
-
-	[[%c(TWCLocationUpdater) sharedLocationUpdater] updateWeatherForLocation:[weatherLocationManager location] city:localCity];
-
-	[weatherLocationManager setLocationTrackingActive:NO];
-	[locationManager release];
 }
 @end

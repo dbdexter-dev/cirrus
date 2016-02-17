@@ -8,6 +8,7 @@
 @property (nonatomic,retain) CirrusLSForecastView *dateView;
 @end
 static BOOL isEnabled;
+static BOOL isLocal;
 static double updateInterval;
 static double y_offset;
 /**
@@ -17,6 +18,7 @@ static double y_offset;
 
 static void loadPreferences() {
 	isEnabled = (BOOL)CFPreferencesGetAppBooleanValue(CFSTR("enabled"), CFSTR(APP_ID), NULL);
+	isLocal = (BOOL)CFPreferencesGetAppBooleanValue(CFSTR("useLocalWeather"), CFSTR(APP_ID), NULL);
 	updateInterval = [(id)CFPreferencesCopyAppValue(CFSTR("updateInterval"), CFSTR(APP_ID)) doubleValue];
 	y_offset = [(id)CFPreferencesCopyAppValue(CFSTR("y_offset"), CFSTR(APP_ID)) doubleValue];
 	
@@ -59,8 +61,13 @@ static void reloadPreferences(CFNotificationCenterRef center, void *observer,
 
 %hook CirrusLSForecastView
 -(void)_forceWeatherUpdate {
-	if([[NSDate date] compare:[[[[%c(WeatherPreferences)sharedPreferences]localWeatherCity]updateTime] dateByAddingTimeInterval:updateInterval*3600]] == NSOrderedDescending)
-		%orig();
+	City *_city = (isLocal ? [[%c(WeatherPreferences) sharedPreferences] localWeatherCity] : [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]]);
+	if([[NSDate date] compare:[[_city updateTime] dateByAddingTimeInterval:updateInterval*3600]] == NSOrderedDescending) {
+			[self _forceWeatherUpdate_isLocal:isLocal];
+	}
+}
+-(void)_updateDisplayedWeather {
+	[self _updateDisplayedWeather_isLocal:isLocal];
 }
 %end
 
