@@ -404,7 +404,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 -(void)_updateDisplayedWeather{}
 -(void)_updateDisplayedWeather_isLocal:(BOOL)useLocalWeather {
-	[self _forceWeatherUpdate_isLocal:useLocalWeather];
+	[self _forceWeatherUpdate];
 	HBLogDebug(@"[Cirrus] LSForecastView: updating displayed weather");
 //TODO: check whether this is necessary, as my iPhone crashed in the middle of the night while in airplane mode
 //	Crash log @/home/dbdexter/iOS/crashLogs

@@ -62,6 +62,7 @@ static void reloadPreferences(CFNotificationCenterRef center, void *observer,
 %hook CirrusLSForecastView
 -(void)_forceWeatherUpdate {
 	City *_city = (isLocal ? [[%c(WeatherPreferences) sharedPreferences] localWeatherCity] : [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]]);
+	HBLogDebug(@"[Cirrus] LSForecastView: weather for %@ updated at %@", _city, [_city updateTime]);
 	if([[NSDate date] compare:[[_city updateTime] dateByAddingTimeInterval:updateInterval*3600]] == NSOrderedDescending) {
 			[self _forceWeatherUpdate_isLocal:isLocal];
 	}
