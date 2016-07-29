@@ -77,21 +77,21 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 		case 27:
 		case 29:
-		case 33:
 			return @"Cloud-Moon";
 			break;
 
 		case 28:
 		case 30:
-		case 34:
 			return @"Cloud-Sun";
 			break;
 
 		case 31:
+		case 33:
 			return @"Moon";
 			break;
 
 		case 32:
+		case 34:
 			return @"Sun";
 			break;
 
@@ -174,7 +174,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	_dateLabel = [[_UILegibilityLabel alloc] initWithSettings:_legibilitySettings
 							 strength:_timeStrength
 							   string:@""
-							     font:[UIFont fontWithName:@".SFUIDisplay-Thin" size:14]];
+							     font:[UIFont systemFontOfSize:14]];
 	_maxMinLabel = [[_UILegibilityLabel alloc] initWithSettings:_legibilitySettings
 							 strength:_timeStrength
 							   string:@""
@@ -208,7 +208,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastThree release];
 	
 	
-	HBLogDebug(@"[Cirrus] LSForecastView: initialized");
+	HBLogDebug(@"Initialized");
 	return self;
 }
 
@@ -222,13 +222,13 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 
 -(void)dealloc{
-	HBLogDebug(@"[Cirrus] LSForecastView: deallocating");
+	HBLogDebug(@"Deallocating");
 	[_legibilitySettings release];
 	[_dateFormatter release];
 	[super dealloc];
 }
 -(void)setTextColor:(UIColor *)arg1{
-	HBLogDebug(@"[Cirrus] LSForecastView: trying to set text color to %@", arg1);
+	HBLogDebug(@"Setting text color to %@", arg1);
 	if(!arg1)
 		return;
 	[_legibilitySettings setPrimaryColor:arg1];
@@ -265,7 +265,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	return _legibilitySettings;
 }
 -(void)_updateLabels{
-	HBLogDebug(@"[Cirrus] LSForecastView: updating labels");
+	HBLogDebug(@"Updating labels");
 	[self _updateDisplayedWeather];
 	_dateFormatter.timeStyle = NSDateFormatterShortStyle;
 	_dateFormatter.dateStyle = NSDateFormatterNoStyle;
@@ -279,7 +279,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 }
 -(void)_addLabels{}		//The labels are actually added inside the -init method
 -(void)layoutSubviews {
-	HBLogDebug(@"[Cirrus] LSForecastView: layoutSubviews called");
+	HBLogDebug(@"LayoutSubviews called");
 	[super layoutSubviews];
 	[_tempLabel sizeToFit];
 	[_maxMinLabel sizeToFit];
@@ -375,7 +375,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	return self.dateHidden;
 }
 -(void)setDateHidden:(BOOL)arg1 {	//This is called when iOS wants to show a message below the time view,
-	HBLogDebug(@"[Cirrus] LSForecastView: will now %@ date", (arg1 ? @"hide" : @"show"));
+	HBLogDebug(@"Will now %@ date", (arg1 ? @"hide" : @"show"));
 	_dateLabel.hidden = arg1;	//e.g. the batery percentage when the device is plugged in
 	_timeLabel.hidden = arg1;
 	_forecastOne.hidden = arg1;
@@ -405,7 +405,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 -(void)_updateDisplayedWeather{}
 -(void)_updateDisplayedWeather_isLocal:(BOOL)useLocalWeather {
 	[self _forceWeatherUpdate];
-	HBLogDebug(@"[Cirrus] LSForecastView: updating displayed weather");
+	HBLogDebug(@"Updating displayed weather");
 //TODO: check whether this is necessary, as my iPhone crashed in the middle of the night while in airplane mode
 //	Crash log @/home/dbdexter/iOS/crashLogs
 //	if(![[%c(WeatherPreferences sharedPreferences)] localWeatherCity])
@@ -414,7 +414,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	BOOL isNight = ![_city isDay];
 	BOOL isCelsius = [[%c(WeatherPreferences) sharedPreferences] isCelsius];
 
-	HBLogDebug(@"[Cirrus] LSForecastView: will use city %@", _city);
+	HBLogDebug(@"Will use city %@", _city);
 
 	NSBundle *bundle = [NSBundle bundleWithPath:BUNDLE];
 	NSString *imageName = idToFname([_city conditionCode], isNight);
@@ -450,9 +450,9 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
 	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
 
-	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld°", forecastOneTime, (long)oneTemp];
-	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld°", forecastTwoTime, (long)twoTemp];
-	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld°", forecastThreeTime, (long)threeTemp];
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld° ", forecastOneTime, (long)oneTemp];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld° ", forecastTwoTime, (long)twoTemp];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld° ", forecastThreeTime, (long)threeTemp];
 
 	[viewDateFormatter release];
 	[forecastDateFormatter release];
@@ -462,7 +462,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 -(void)_forceWeatherUpdate{}
 -(void)_forceWeatherUpdate_isLocal:(BOOL)useLocalWeather {
 	if(useLocalWeather) {
-		HBLogDebug(@"[Cirrus] LSForecastView: updating local current weather info");
+		HBLogDebug(@"Downloading local weather info");
 		City *localCity = [[%c(WeatherPreferences) sharedPreferences] localWeatherCity];
 		WeatherLocationManager *weatherLocationManager = [%c(WeatherLocationManager) sharedWeatherLocationManager];
 
@@ -481,7 +481,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 		[weatherLocationManager setLocationTrackingActive:NO];
 		[locationManager release];
 	} else {
-		HBLogDebug(@"[Cirrus] LSForecastView: updating first city weather info");
+		HBLogDebug(@"Updating weather info for the first city");
 		City *city = [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]];
 		[[%c(TWCCityUpdater) sharedCityUpdater] updateWeatherForCity:city];
 	}
