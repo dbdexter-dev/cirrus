@@ -193,9 +193,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self addSubview:_forecastTwo];
 	[self addSubview:_forecastThree];
 	[_iconView addSubview:_degree];
-	
-	[self _updateLabels];
-	[self _updateDisplayedWeather];
 
 	[_degree release];
 	[_iconView release];
@@ -245,7 +242,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self _updateLabels];
 }
 -(void)setLegibilitySettings:(_UILegibilitySettings *)arg1 {
-	[self _updateDisplayedWeather];
 	if(!arg1)
 		return;
 	_legibilitySettings.primaryColor = arg1.primaryColor;
@@ -404,12 +400,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 -(void)_updateDisplayedWeather{}
 -(void)_updateDisplayedWeather_isLocal:(BOOL)useLocalWeather {
-	[self _forceWeatherUpdate];
 	HBLogDebug(@"Updating displayed weather");
-//TODO: check whether this is necessary, as my iPhone crashed in the middle of the night while in airplane mode
-//	Crash log @/home/dbdexter/iOS/crashLogs
-//	if(![[%c(WeatherPreferences sharedPreferences)] localWeatherCity])
-//		return;
 	City* _city = (useLocalWeather ? [[%c(WeatherPreferences) sharedPreferences] localWeatherCity] : [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]]);
 	BOOL isNight = ![_city isDay];
 	BOOL isCelsius = [[%c(WeatherPreferences) sharedPreferences] isCelsius];
@@ -424,7 +415,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	
 	NSMutableArray *hourlyForecasts  = [_city hourlyForecasts];
 	NSMutableArray *dayForecasts  = [_city dayForecasts];
-	
 	NSString* currentCelsius = [_city temperature];
 
 	NSInteger currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
@@ -433,7 +423,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSInteger oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[0]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[0]).detail intValue] * 1.8 + 32);
 	NSInteger twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
 	NSInteger threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
-
 
 	_tempLabel.string = [NSString stringWithFormat:@"%ld", (long)currentTemp];
 
@@ -450,9 +439,9 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
 	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
 
-	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld° ", forecastOneTime, (long)oneTemp];
-	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld° ", forecastTwoTime, (long)twoTemp];
-	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld° ", forecastThreeTime, (long)threeTemp];
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld°  ", forecastOneTime, (long)oneTemp];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld°  ", forecastTwoTime, (long)twoTemp];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld°  ", forecastThreeTime, (long)threeTemp];
 
 	[viewDateFormatter release];
 	[forecastDateFormatter release];
@@ -485,5 +474,18 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 		City *city = [[%c(WeatherPreferences) sharedPreferences] cityFromPreferencesDictionary:[[[%c(WeatherPreferences) userDefaultsPersistence]userDefaults] objectForKey:@"Cities"][0]];
 		[[%c(TWCCityUpdater) sharedCityUpdater] updateWeatherForCity:city];
 	}
+	
+	//Wait for the info to be updated, then display it
+	[NSTimer  scheduledTimerWithTimeInterval:1.0
+									  target:self
+									selector:@selector(_timedUpdateWeatherInfo:)
+									userInfo:nil
+									 repeats:NO];
 }
+
+//Wrapper to update the displayed weather with the freshly downloaded info
+-(void)_timedUpdateWeatherInfo:(NSTimer*)incomingTimer {
+	[self _updateDisplayedWeather];
+}
+
 @end
