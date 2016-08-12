@@ -14,16 +14,6 @@
 @interface CustomSwitchTableCell : PSSwitchTableCell
 @end
 
-@interface WeatherLocationManager : NSObject
-+(id)sharedWeatherLocationManager;
--(BOOL)locationTrackingIsReady;
--(void)setLocationTrackingReady:(BOOL)arg1 activelyTracking:(BOOL)arg2 watchKitExtension:(id)arg3;
--(void)setLocationTrackingActive:(BOOL)arg1;
--(CLLocation*)location;
--(void)setDelegate:(id)arg1;
-@end
-
-
 @implementation cirrusPreferencesListController
 - (id)specifiers {
 	if(_specifiers == nil) {

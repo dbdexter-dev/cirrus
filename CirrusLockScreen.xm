@@ -5,7 +5,7 @@
 
 #define LSFONT @".SFUIDisplay-Ultralight"
 #define BUNDLE @"/Library/Application Support/Cirrus"
-
+#define MARGIN 10
 /**
  * An extremely time-consuming function that converts weather IDs into filenames
  * It also takes care of returning a filename based on current lighting conditions
@@ -57,6 +57,7 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 
 		case 11:
 		case 12:
+		case 40:
 			return @"Cloud-Rain";
 			break;
 
@@ -102,7 +103,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 			return isNight ? @"Cloud-Lightning-Moon" : @"Cloud-Lightning-Sun";
 			break;
 
-		case 40:
 			return isNight ? @"Cloud-Rain-Moon" : @"Cloud-Rain-Sun";
 			break;
 
@@ -165,12 +165,6 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 							      string:@"---"
 							        font:[UIFont systemFontOfSize:15]];
 															
-	_degree = [[_UILegibilityLabel alloc]initWithSettings:_legibilitySettings
-						     strength:_timeStrength
-						       string:@"°"
-							 font:[UIFont systemFontOfSize:15]];
-	_degree.frame = CGRectMake(-4, 14, 10, 10);
-	
 	_dateLabel = [[_UILegibilityLabel alloc] initWithSettings:_legibilitySettings
 							 strength:_timeStrength
 							   string:@""
@@ -179,10 +173,14 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 							 strength:_timeStrength
 							   string:@""
 							     font:[UIFont systemFontOfSize:11]];
+	_degree = [[_UILegibilityLabel alloc]initWithSettings:_legibilitySettings
+												 strength:_timeStrength
+												   string:@"°"
+													 font:[UIFont systemFontOfSize:15]];
+	_degree.frame = CGRectMake(0, 0, 10, 10);
 
 	_useLegibilityLabels = YES;
 	
-	[self _forceWeatherUpdate];
 
 	[self addSubview:_iconView];
 	[self addSubview:_timeLabel];
@@ -192,7 +190,9 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[self addSubview:_forecastOne];
 	[self addSubview:_forecastTwo];
 	[self addSubview:_forecastThree];
-	[_iconView addSubview:_degree];
+	[_tempLabel addSubview:_degree];
+	
+	[self _forceWeatherUpdate];
 
 	[_degree release];
 	[_iconView release];
@@ -285,37 +285,45 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	[_forecastTwo sizeToFit];
 	[_forecastThree sizeToFit];
 	
-	_tempLabel.frame = CGRectMake((self.frame.size.width/2) - _tempLabel.frame.size.width, 
+	_tempLabel.frame = CGRectMake((self.frame.size.width/2) - _tempLabel.frame.size.width - MARGIN, 
 								  0,
 								  _tempLabel.frame.size.width,
 								  _tempLabel.frame.size.height);
 							   
-	_dateLabel.frame = CGRectMake((self.frame.size.width/2) - _dateLabel.frame.size.width,
+	_degree.frame = CGRectMake(_tempLabel.frame.size.width, 20, 10, 10);
+	_dateLabel.frame = CGRectMake((self.frame.size.width/2) - _dateLabel.frame.size.width - MARGIN,
 				      self.frame.size.height - _dateLabel.frame.size.height,
 				      _dateLabel.frame.size.width, 
 				      _dateLabel.frame.size.height);
 
-	_timeLabel.frame = CGRectMake((self.frame.size.width/2)-_timeLabel.frame.size.width,
+	_timeLabel.frame = CGRectMake((self.frame.size.width/2)-_timeLabel.frame.size.width - MARGIN,
 				      self.frame.size.height - _dateLabel.frame.size.height - _timeLabel.frame.size.height,
 				      _timeLabel.frame.size.width+10, 		//add 10 to prevent last digit from being hidden
 				      _timeLabel.frame.size.height);
 
-	_maxMinLabel.frame = CGRectMake((self.frame.size.width/2) - _maxMinLabel.frame.size.width,
+	_maxMinLabel.frame = CGRectMake((self.frame.size.width/2) - _maxMinLabel.frame.size.width - MARGIN,
 					_timeLabel.frame.origin.y - _maxMinLabel.frame.size.height,
 					_maxMinLabel.frame.size.width,
 					_maxMinLabel.frame.size.height);
 	
 	_iconView.frame = CGRectMake((self.frame.size.width/2),
-				     _tempLabel.frame.origin.y,
+				     0,
 				     _iconView.frame.size.width,
 				     _iconView.frame.size.height);
+	
+	_forecastOne.frame = CGRectMake((self.frame.size.width/2) + MARGIN + _iconView.frame.size.width/10,
+									self.frame.size.height-_forecastThree.frame.size.height*3,
+									_iconView.frame.size.width*9/10,
+									_forecastOne.frame.size.height);
+	_forecastTwo.frame = CGRectMake((self.frame.size.width/2) + MARGIN + _iconView.frame.size.width/10,
+									self.frame.size.height-_forecastThree.frame.size.height*2,
+									_iconView.frame.size.width*9/10,
+									_forecastTwo.frame.size.height);
+	_forecastThree.frame = CGRectMake((self.frame.size.width/2) + MARGIN + _iconView.frame.size.width/10,
+									self.frame.size.height-_forecastThree.frame.size.height,
+									_iconView.frame.size.width*9/10,
+									_forecastThree.frame.size.height);
 
-	_forecastOne.center = CGPointMake(_iconView.frame.origin.x + _iconView.frame.size.width/2,
-					  self.frame.size.height-_forecastThree.frame.size.height*5/2);
-	_forecastTwo.center = CGPointMake(_iconView.frame.origin.x + _iconView.frame.size.width/2,
-					  self.frame.size.height-_forecastThree.frame.size.height*3/2);
-	_forecastThree.center = CGPointMake(_iconView.frame.origin.x + _iconView.frame.size.width/2,
-			    		    self.frame.size.height-_forecastThree.frame.size.height*1/2);
 }
 -(void)_useLegibilityLabels:(BOOL)arg1 {
 	_useLegibilityLabels = arg1;
@@ -417,35 +425,44 @@ static NSString* idToFname(unsigned long long weatherID, BOOL isNight) {
 	NSMutableArray *dayForecasts  = [_city dayForecasts];
 	NSString* currentCelsius = [_city temperature];
 
+	@try {
 	NSInteger currentTemp = isCelsius ? [currentCelsius intValue] : ([currentCelsius intValue] * 1.8 + 32);
 	NSInteger maxTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).high intValue] : ([((DayForecast*)dayForecasts[0]).high intValue] * 1.8 + 32);
 	NSInteger minTemp = isCelsius ? [((DayForecast*)dayForecasts[0]).low intValue] : ([((DayForecast*)dayForecasts[0]).low intValue] * 1.8 + 32);
-	NSInteger oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[0]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[0]).detail intValue] * 1.8 + 32);
-	NSInteger twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
-	NSInteger threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
+	NSInteger oneTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[1]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[1]).detail intValue] * 1.8 + 32);
+	NSInteger twoTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[2]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[2]).detail intValue] * 1.8 + 32);
+	NSInteger threeTemp = isCelsius ? [((HourlyForecast*)hourlyForecasts[3]).detail intValue] : ([((HourlyForecast*)hourlyForecasts[3]).detail intValue] * 1.8 + 32);
 
 	_tempLabel.string = [NSString stringWithFormat:@"%ld", (long)currentTemp];
 
 	_maxMinLabel.string= [NSString stringWithFormat:@"%ld°\t%ld°", (long)maxTemp, (long)minTemp];
 	
-	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
 	NSDateFormatter *forecastDateFormatter = [[NSDateFormatter alloc] init];
-
-	viewDateFormatter.dateFormat=@"ha";	
 	[forecastDateFormatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
 	forecastDateFormatter.dateFormat=@"HH:mm";
+	NSDateFormatter *viewDateFormatter = [[NSDateFormatter alloc] init];
+	viewDateFormatter.dateFormat=@"ha";	
 
-	NSString *forecastOneTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[0]).time]];
-	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
-	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
+	NSString *forecastOneTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[1]).time]];
+	NSString *forecastTwoTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[2]).time]];
+	NSString *forecastThreeTime = [viewDateFormatter stringFromDate:[forecastDateFormatter dateFromString:((HourlyForecast*)hourlyForecasts[3]).time]];
 
-	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld°  ", forecastOneTime, (long)oneTemp];
-	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld°  ", forecastTwoTime, (long)twoTemp];
-	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld°  ", forecastThreeTime, (long)threeTemp];
-
+	_forecastOne.string = [NSString stringWithFormat:@"%@: %ld°", forecastOneTime, (long)oneTemp];
+	_forecastTwo.string = [NSString stringWithFormat:@"%@: %ld°", forecastTwoTime, (long)twoTemp];
+	_forecastThree.string = [NSString stringWithFormat:@"%@: %ld°", forecastThreeTime, (long)threeTemp];
 	[viewDateFormatter release];
 	[forecastDateFormatter release];
-	[self layoutSubviews];
+
+	} @catch (NSException* e) {
+		HBLogDebug(@"Failed to update displayed weather: %@", e);
+		_tempLabel.string = @"0";	
+		_maxMinLabel.string = @"0°\t0°";
+		_forecastOne.string = @"---";
+		_forecastTwo.string = @"---";
+		_forecastThree.string = @"---";
+	} @finally {
+		[self layoutSubviews];
+	}
 }
 
 -(void)_forceWeatherUpdate{}
